@@ -1,0 +1,49 @@
+name: Redirect
+version: 0.1.0
+description: Provide custom redirects with specific HTTP status codes
+icon: plug
+author:
+  name: Tuukka Norri
+  email: tsnorri@iki.fi
+homepage: https://github.com/tsnorri/grav-plugin-redirect
+keywords: grav, plugin, redirect
+bugs: https://github.com/tsnorri/grav-plugin-redirect/issues
+docs: https://github.com/tsnorri/grav-plugin-redirect/blob/master/README.md
+license: MIT
+
+form:
+  validation: strict
+  fields:
+    enabled:
+      type: toggle
+      label: Plugin status
+      highlight: 1
+      default: 0
+      options:
+        1: Enabled
+        0: Disabled
+      validate:
+        type: bool
+    redirects:
+      type: list
+      style: vertical
+      label: Redirects
+      help: Custom redirects and the associated HTTP status codes
+      fields:
+        .path:
+          type: text
+          label: "Path"
+          validate:
+            required: True
+        .destination:
+          type: text
+          label: "Destination"
+          validate:
+            required: True
+        .statusCode:
+          type: text
+          label: "HTTP status code"
+          default: 301
+          validate:
+            required: True
+            pattern: "\d+"
