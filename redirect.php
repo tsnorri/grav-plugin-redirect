@@ -82,10 +82,8 @@ class RedirectPlugin extends Plugin
 	 */
 	public function onPageNotFound(Event $e)
 	{
-		$uri = $this->grav['uri'];
-		
 		// Apparently this is the only way to get the path with the language identifier.
-		$pathWithLanguage = $uri->baseIncludingLanguage() . $uri->path();
+		$pathWithLanguage = $_SERVER['REQUEST_URI'];
 		
 		// Try with an exact key.
 		if (array_key_exists($pathWithLanguage, $this->redirects))
