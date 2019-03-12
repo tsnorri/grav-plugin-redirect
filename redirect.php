@@ -14,15 +14,18 @@ class Redirection
 {
 	protected $destination = null;
 	protected $statusCode = 0;
+	protected $removeSuffix = false;
 	
-	public function __construct($destination, int $statusCode)
+	public function __construct($destination, int $statusCode, bool $removeSuffix)
 	{
 		$this->destination = $destination;
 		$this->statusCode = $statusCode;
+		$this->removeSuffix = $removeSuffix;
 	}
 	
 	public function getDestination() { return $this->destination; }
 	public function getStatusCode() { return $this->statusCode; }
+	public function shouldRemoveSuffix() { return $this->removeSuffix; }
 }
 
 
@@ -65,7 +68,13 @@ class RedirectPlugin extends Plugin
 		// Get and transform the configuration.
 		$this->redirects = array();
 		foreach ($this->config->get('plugins.redirect.redirects') as $rdr)
-			$this->redirects[$rdr["path"]] = new Redirection($rdr["destination"], intval($rdr["statusCode"]));
+		{
+			$this->redirects[$rdr["path"]] = new Redirection(
+				$rdr["destination"],
+				intval($rdr["statusCode"]),
+				"1" === $rdr["removeSuffix"]
+			);
+		}
 		
 		// Enable the main event we are interested in.
 		// Run before the error plugin by setting the priority to 1.
@@ -82,6 +91,8 @@ class RedirectPlugin extends Plugin
 	 */
 	public function onPageNotFound(Event $e)
 	{
+		$uri = $this->grav['uri'];
+		
 		// Apparently this is the only way to get the path with the language identifier.
 		$pathWithLanguage = $_SERVER['REQUEST_URI'];
 		
@@ -99,12 +110,19 @@ class RedirectPlugin extends Plugin
 		// Try with redirects as prefixes.
 		foreach ($this->redirects as $rdrPath => $rdr)
 		{
+			// Allow matching at path component boundary only.
+			if ('/' != substr($rdrPath, -1))
+				$rdrPath .= '/';
+			
 			$rdrLen = strlen($rdrPath);
 			if ($rdrLen < strlen($pathWithLanguage))
 			{
 				if (0 === strcmp($rdrPath, substr($pathWithLanguage, 0, $rdrLen)))
 				{
-					$dst = substr_replace($pathWithLanguage, $rdr->getDestination(), 0, $rdrLen);
+					$dst = $rdr->getDestination();
+					if (!$rdr->shouldRemoveSuffix())
+						$dst = substr_replace($pathWithLanguage, $dst, 0, $rdrLen);
+					
 					$statusCode = $rdr->getStatusCode();
 					$this->grav->redirectLangSafe($dst, $statusCode);
 					$event->stopPropagation();

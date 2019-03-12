@@ -47,3 +47,11 @@ form:
           validate:
             required: True
             pattern: "\d+"
+        .removeSuffix:
+          type: toggle
+          label: "Remove path suffix in case of prefix matching"
+          highlight: True
+          default: False
+          options:
+            1: Enabled
+            0: Disabled
