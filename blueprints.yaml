@@ -46,7 +46,8 @@ form:
           default: 301
           validate:
             required: True
-            pattern: "\d+"
+            type: int
+            message: "The status code has to be numeric."
         .removeSuffix:
           type: toggle
           label: "Remove path suffix in case of prefix matching"
