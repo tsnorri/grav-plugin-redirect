@@ -121,7 +121,11 @@ class RedirectPlugin extends Plugin
 				{
 					$dst = $rdr->getDestination();
 					if (!$rdr->shouldRemoveSuffix())
+					{
+						// Add the slash since we required it in the end of $rdrPath.
+						$dst .= '/';
 						$dst = substr_replace($pathWithLanguage, $dst, 0, $rdrLen);
+					}
 					
 					$statusCode = $rdr->getStatusCode();
 					$this->grav->redirectLangSafe($dst, $statusCode);
