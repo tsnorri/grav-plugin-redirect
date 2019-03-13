@@ -53,4 +53,5 @@ redirects:
     path: /en/a-path-or-prefix-with-the-language-code
     destination: /a-destination-path-or-prefix-without-the-language-code
     statusCode: '301'
+    removeSuffix: '0'
 ```
