@@ -24,10 +24,34 @@ form:
         0: Disabled
       validate:
         type: bool
-    redirects:
+    exactPaths:
       type: list
       style: vertical
-      label: Redirects
+      label: "Exact paths"
+      help: Custom redirects and the associated HTTP status codes
+      fields:
+        .path:
+          type: text
+          label: "Path"
+          validate:
+            required: True
+        .destination:
+          type: text
+          label: "Destination"
+          validate:
+            required: True
+        .statusCode:
+          type: text
+          label: "HTTP status code"
+          default: 301
+          validate:
+            required: True
+            type: int
+            message: "The status code has to be numeric."
+    pathPrefixes:
+      type: list
+      style: vertical
+      label: "Path prefixes"
       help: Custom redirects and the associated HTTP status codes
       fields:
         .path:

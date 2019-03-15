@@ -14,17 +14,31 @@ class Redirection
 {
 	protected $destination = null;
 	protected $statusCode = 0;
-	protected $removeSuffix = false;
 	
-	public function __construct($destination, int $statusCode, bool $removeSuffix)
+	public function __construct(string $destination, int $statusCode)
 	{
 		$this->destination = $destination;
 		$this->statusCode = $statusCode;
-		$this->removeSuffix = $removeSuffix;
 	}
 	
 	public function getDestination() { return $this->destination; }
 	public function getStatusCode() { return $this->statusCode; }
+}
+
+
+class PrefixRedirection extends Redirection
+{
+	protected $source = null;
+	protected $removeSuffix = false;
+	
+	public function __construct(string $source, string $destination, int $statusCode, bool $removeSuffix)
+	{
+		parent::__construct($destination, $statusCode);
+		$this->source = $source;
+		$this->removeSuffix = $removeSuffix;
+	}
+	
+	public function getSource() { return $this->source; }
 	public function shouldRemoveSuffix() { return $this->removeSuffix; }
 }
 
@@ -35,7 +49,8 @@ class Redirection
  */
 class RedirectPlugin extends Plugin
 {
-	protected $redirects = null;
+	protected $exactPaths = null;
+	protected $pathPrefixes = null;
 	
 	
 	/**
@@ -66,10 +81,21 @@ class RedirectPlugin extends Plugin
 			return;
 		
 		// Get and transform the configuration.
-		$this->redirects = array();
-		foreach ($this->config->get('plugins.redirect.redirects') as $rdr)
+		$this->exactPaths = array();
+		$this->pathPrefixes = array();
+		
+		foreach ($this->config->get('plugins.redirect.exactPaths') as $rdr)
 		{
-			$this->redirects[$rdr["path"]] = new Redirection(
+			$this->exactPaths[$rdr["path"]] = new Redirection(
+				$rdr["destination"],
+				intval($rdr["statusCode"])
+			);
+		}
+		
+		foreach ($this->config->get('plugins.redirect.pathPrefixes') as $rdr)
+		{
+			$this->pathPrefixes[] = new PrefixRedirection(
+				$rdr["path"],
 				$rdr["destination"],
 				intval($rdr["statusCode"]),
 				"1" === $rdr["removeSuffix"]
@@ -97,9 +123,9 @@ class RedirectPlugin extends Plugin
 		$pathWithLanguage = $_SERVER['REQUEST_URI'];
 		
 		// Try with an exact key.
-		if (array_key_exists($pathWithLanguage, $this->redirects))
+		if (array_key_exists($pathWithLanguage, $this->exactPaths))
 		{
-			$rdr = $this->redirects[$pathWithLanguage];
+			$rdr = $this->exactPaths[$pathWithLanguage];
 			$dst = $rdr->getDestination();
 			$statusCode = $rdr->getStatusCode();
 			$this->grav->redirectLangSafe($dst, $statusCode);
@@ -107,31 +133,39 @@ class RedirectPlugin extends Plugin
 			return;
 		}
 		
-		// Try with redirects as prefixes.
-		foreach ($this->redirects as $rdrPath => $rdr)
+		// Try with the prefixes.
+		foreach ($this->pathPrefixes as $rdr)
 		{
-			// Allow matching at path component boundary only.
+			// Allow either exact matching or matching at path component boundary only.
+			$rdrPath = $rdr->getSource();
+			if ($rdrPath === $pathWithLanguage)
+			{
+				$dst = $rdr->getDestination();
+				$statusCode = $rdr->getStatusCode();
+				$this->grav->redirectLangSafe($dst, $statusCode);
+				$event->stopPropagation();
+				return;
+			}
+			
+			// Try with a prefix.
 			if ('/' != substr($rdrPath, -1))
 				$rdrPath .= '/';
-			
 			$rdrLen = strlen($rdrPath);
-			if ($rdrLen < strlen($pathWithLanguage))
+			
+			if ($rdrLen <= strlen($pathWithLanguage) && 0 === strcmp($rdrPath, substr($pathWithLanguage, 0, $rdrLen)))
 			{
-				if (0 === strcmp($rdrPath, substr($pathWithLanguage, 0, $rdrLen)))
+				$dst = $rdr->getDestination();
+				if (!$rdr->shouldRemoveSuffix())
 				{
-					$dst = $rdr->getDestination();
-					if (!$rdr->shouldRemoveSuffix())
-					{
-						// Add the slash since we required it in the end of $rdrPath.
-						$dst .= '/';
-						$dst = substr_replace($pathWithLanguage, $dst, 0, $rdrLen);
-					}
-					
-					$statusCode = $rdr->getStatusCode();
-					$this->grav->redirectLangSafe($dst, $statusCode);
-					$event->stopPropagation();
-					return;
+					// Add the slash since we required it in the end of $rdrPath.
+					$dst .= '/';
+					$dst = substr_replace($pathWithLanguage, $dst, 0, $rdrLen);
 				}
+				
+				$statusCode = $rdr->getStatusCode();
+				$this->grav->redirectLangSafe($dst, $statusCode);
+				$event->stopPropagation();
+				return;
 			}
 		}
 	}
