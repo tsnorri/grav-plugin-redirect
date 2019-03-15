@@ -84,22 +84,30 @@ class RedirectPlugin extends Plugin
 		$this->exactPaths = array();
 		$this->pathPrefixes = array();
 		
-		foreach ($this->config->get('plugins.redirect.exactPaths') as $rdr)
+		$exactPaths = $this->config->get('plugins.redirect.exactPaths');
+		if (!is_null($exactPaths))
 		{
-			$this->exactPaths[$rdr["path"]] = new Redirection(
-				$rdr["destination"],
-				intval($rdr["statusCode"])
-			);
+			foreach ($exactPaths as $rdr)
+			{
+				$this->exactPaths[$rdr["path"]] = new Redirection(
+					$rdr["destination"],
+					intval($rdr["statusCode"])
+				);
+			}
 		}
 		
-		foreach ($this->config->get('plugins.redirect.pathPrefixes') as $rdr)
+		$pathPrefixes = $this->config->get('plugins.redirect.pathPrefixes');
+		if (!is_null($pathPrefixes))
 		{
-			$this->pathPrefixes[] = new PrefixRedirection(
-				$rdr["path"],
-				$rdr["destination"],
-				intval($rdr["statusCode"]),
-				"1" === $rdr["removeSuffix"]
-			);
+			foreach ($pathPrefixes as $rdr)
+			{
+				$this->pathPrefixes[] = new PrefixRedirection(
+					$rdr["path"],
+					$rdr["destination"],
+					intval($rdr["statusCode"]),
+					"1" === $rdr["removeSuffix"]
+				);
+			}
 		}
 		
 		// Enable the main event we are interested in.
